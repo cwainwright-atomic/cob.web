@@ -1,0 +1,145 @@
+{
+	"type": "modal",
+	"title": {
+		"type": "plain_text",
+		"text": "My App",
+		"emoji": true
+	},
+	"submit": {
+		"type": "plain_text",
+		"text": "Submit",
+		"emoji": true
+	},
+	"close": {
+		"type": "plain_text",
+		"text": "Cancel",
+		"emoji": true
+	},
+	"blocks": [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Order your Friday Cob"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Choose a cob filling"
+			},
+			"accessory": {
+				"type": "static_select",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "Select a filling",
+					"emoji": true
+				},
+				"options": [
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "*bacon*",
+							"emoji": true
+						},
+						"value": "bacon"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "*sausage*",
+							"emoji": true
+						},
+						"value": "sausage"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "*egg*",
+							"emoji": true
+						},
+						"value": "egg"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "*vegan_sausage*",
+							"emoji": true
+						},
+						"value": "vegan_sausage"
+					}
+				],
+				"action_id": "filling_select-action"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Choose a bread type"
+			},
+			"accessory": {
+				"type": "static_select",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "Select a bread",
+					"emoji": true
+				},
+				"options": [
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "*white*",
+							"emoji": true
+						},
+						"value": "white"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "*brown*",
+							"emoji": true
+						},
+						"value": "brown"
+					}
+				],
+				"action_id": "bread_select-action"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Choose a sauce"
+			},
+			"accessory": {
+				"type": "static_select",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "Select a sauce",
+					"emoji": true
+				},
+				"options": [
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "*red*",
+							"emoji": true
+						},
+						"value": "red"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "*brown*",
+							"emoji": true
+						},
+						"value": "brown"
+					}
+				],
+				"action_id": "sauce_select-action"
+			}
+		}
+	]
+}

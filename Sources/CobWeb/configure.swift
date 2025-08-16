@@ -8,9 +8,16 @@ public func configure(_ app: Application) async throws {
     // uncomment to serve files from /Public folder
     // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
 
-    app.databases.use(DatabaseConfigurationFactory.sqlite(.file("db.sqlite")), as: .sqlite)
+    app.databases.use(.sqlite(.file("db.sqlite")), as: .sqlite)
+    
+    app.databases.default(to: .sqlite)
 
-
+    app.migrations.add(CreateCobOrders())
+    app.migrations.add(CreateWeekOrders())
+    app.migrations.add(CreateSlackUsers())
+    
+    try await app.autoMigrate().get()
+    
     // register routes
     try routes(app)
 }
