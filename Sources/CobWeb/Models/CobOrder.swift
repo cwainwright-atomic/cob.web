@@ -16,7 +16,7 @@ final class CobOrder : Model, @unchecked Sendable {
     init(id: UUID? = nil, createdAt: Date? = nil, userId: UUID, orderDetail: CobOrderDetail, weekOrderId: UUID) {
         self.id = id
         self.createdAt = createdAt
-        self.$slackUser.id = userId
+        self.$user.id = userId
         self.orderDetail = orderDetail
         self.$weekOrder.id = weekOrderId
     }
@@ -26,13 +26,12 @@ final class CobOrder : Model, @unchecked Sendable {
     
     @Timestamp(key: "created_at", on: .create)
     var createdAt: Date?
-
     
     @Group(key: "order_detail")
     var orderDetail: CobOrderDetail
 
-    @Parent(key: "slack_user_id")
-    var slackUser: SlackUser
+    @Parent(key: "user_id")
+    var user: User
     
     @Parent(key: "week_order_id")
     var weekOrder: WeekOrder
