@@ -13,6 +13,8 @@ public func configure(_ app: Application) async throws {
     app.databases.default(to: .sqlite)
 
     app.migrations.add(CobOrder.Migration())
+    app.migrations.add(RecurringOrder.Migrtaion())
+    app.migrations.add(RecurringOrderException.Migration())
     app.migrations.add(WeekOrder.Migration())
     app.migrations.add(User.Migration())
     app.migrations.add(UserToken.Migration())

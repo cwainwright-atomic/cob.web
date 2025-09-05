@@ -16,8 +16,8 @@ final class CobOrder : Model, @unchecked Sendable {
     init(id: UUID? = nil, createdAt: Date? = nil, userId: UUID, orderDetail: CobOrderDetail, weekOrderId: UUID) {
         self.id = id
         self.createdAt = createdAt
-        self.$user.id = userId
         self.orderDetail = orderDetail
+        self.$user.id = userId
         self.$weekOrder.id = weekOrderId
     }
     
@@ -35,4 +35,22 @@ final class CobOrder : Model, @unchecked Sendable {
     
     @Parent(key: "week_order_id")
     var weekOrder: WeekOrder
+}
+
+extension CobOrder {
+    static func find(userId: UUID, weekId: UUID, includeUser: Bool = false, includeWeek: Bool = false,  on db: any Database) async throws -> CobOrder? {
+        let query = CobOrder.query(on: db)
+            .filter(\.$weekOrder.$id == weekId)
+            .filter(\.$user.$id == userId)
+        
+        if includeUser {
+            query.join(User.self, on: \User.$id == \CobOrder.$user.$id)
+        }
+        
+        if includeWeek {
+            query.join(WeekOrder.self, on: \WeekOrder.$id == \CobOrder.$weekOrder.$id)
+        }
+        
+        return try await query.first()
+    }
 }

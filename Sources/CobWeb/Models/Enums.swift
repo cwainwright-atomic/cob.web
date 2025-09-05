@@ -18,3 +18,20 @@ enum Bread: String, Codable {
 enum Sauce: String, Codable {
     case red, brown
 }
+
+enum CobOrderKind : String, Codable {
+    case single, recurring
+}
+
+enum CobOrderVariant : Codable {
+    case single(CobOrder), recurring(RecurringOrder)
+    
+    var kind: CobOrderKind {
+        switch self {
+        case .single:
+            return .single
+        case .recurring:
+            return .recurring
+        }
+    }
+}

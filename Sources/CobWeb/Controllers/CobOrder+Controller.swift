@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  CobOrder+Controller.swift
 //  CobWeb
 //
 //  Created by Christopher Wainwright on 16/08/2025.
@@ -17,78 +17,247 @@ extension CobOrder {
             let orders = routes.grouped("orders")
             
             //MARK: Public Endpoint
-            orders.get(use: PerWeek.get)
+            orders.get(use: Week.get)
             
             //MARK: Authenticated Endpoints
-            let tokenProtected = orders
+            let personal = orders
                 .grouped("me")
                 .grouped(UserToken.authenticator())
-            tokenProtected.get(use: PerUser.get)
-            tokenProtected.post(use: PerUser.post)
-            tokenProtected.delete(use: PerUser.delete)
-            tokenProtected.get("history", use: PerUser.history)
+            
+            personal.get(use: Personal.get)
+            personal.post(use: Personal.post)
+            personal.delete(use: Personal.delete)
+            
+            personal.get("history", use: Personal.history)
+            
+            //MARK: Recurring Orders Endpoints
+            let recurring = personal.grouped("recurring")
+            recurring.get(use: Personal.Recurring.get)
+            recurring.post(use: Personal.Recurring.post)
+            recurring.delete(use: Personal.Recurring.delete)
+            recurring.post("reset", use: Personal.Recurring.reset)
         }
         
-        struct PerWeek {
-            static func get(_ req: Request) async throws -> [CobOrder] {
+        struct Week {
+            static func get(_ req: Request) async throws -> WeekOrder.OrderDTO {
                 let fallbackDateComponents = WeekOrder.dateComponents(Date())
                 let year: Int = req.query["year"] ??  fallbackDateComponents.year
                 let week: Int = req.query["week"] ?? fallbackDateComponents.week
                 
-                let pageIndex: Int = req.query["page"] ?? 0
+                guard let weekOrderId = try await WeekOrder.findOrCreate(on: req.db, week: week, year: year)?.requireID()
+                else { throw Abort(.noContent, reason: "No order found for provided week (\(year) - \(week))") }
                 
-                guard let weekOrderId = try await WeekOrder.query(on: req.db).filter(\.$week == week).filter(\.$year == year).first()?.requireID() else { throw Abort(.noContent, reason: "No order found for provided week (\(year) - \(week))") }
+                let recurringCobOrders: [RecurringOrder] = try await RecurringOrder.query(on: req.db)
+                    .join(parent: \RecurringOrder.$user).all()
                 
-                return try await CobOrder.query(on: req.db).filter(\.$weekOrder.$id == weekOrderId).page(withIndex: pageIndex, size: 10).items
+                let exceptionCobOrders: [RecurringOrderException] = try await RecurringOrderException.query(on: req.db)
+                    .join(parent: \RecurringOrderException.$user).filter(\.$weekOrder.$id == weekOrderId).all()
+                
+                let weekCobOrders: [CobOrder] = try await CobOrder.query(on: req.db)
+                    .join(parent: \CobOrder.$user).filter(\.$weekOrder.$id == weekOrderId)
+                    .all()
+                
+                var orders: [UUID : CobOrder.DTO] = [:]
+                
+                try recurringCobOrders.forEach {
+                    let user = try $0.joined(User.self)
+                    let userDTO = User.DTO(fromUser: user)
+                    let cobOrderDTO = try CobOrder.DTO(fromRecurring: $0, user: userDTO)
+                    orders[try user.requireID()] = cobOrderDTO
+                }
+                
+                try exceptionCobOrders.forEach {
+                    try orders.removeValue(forKey: $0.user.requireID())
+                }
+                
+                try weekCobOrders.forEach {
+                    let user = try $0.joined(User.self)
+                    let userDTO = User.DTO(fromUser: user)
+                    let cobOrderDTO = try CobOrder.DTO(fromOrder: $0, user: userDTO)
+                    orders[try user.requireID()] = cobOrderDTO
+                }
+                
+                return WeekOrder.OrderDTO(week: week, year: year, orders: Array(orders.values))
             }
         }
         
-        struct PerUser {
-            static func get(_ req: Request) async throws -> CobOrder {
+        struct Personal {
+            static func get(_ req: Request) async throws -> CobOrder.DTO {
                 let fallbackDateComponents = WeekOrder.dateComponents(Date())
                 let year: Int = req.query["year"] ??  fallbackDateComponents.year
                 let week: Int = req.query["week"] ?? fallbackDateComponents.week
                 
-                let userId = try req.auth.require(User.self).requireID()
+                let user = try req.auth.require(User.self)
                 
-                guard let weekOrderId = try await WeekOrder.current(on: req.db, logger: req.logger)?.requireID() else { throw Abort(.notFound, reason: "Week order (\(year) - \(week)) could not be fetched") }
-                
-                guard let cob = try await CobOrder.query(on: req.db).filter(\.$weekOrder.$id == weekOrderId).first() else { throw Abort(.notFound, reason: "No order found for user \(userId) for current week")}
-                
-                return cob
+                let (weekOrder, cobVariant) = try await req.db.transaction { transaction in
+                    guard let weekOrder = try await WeekOrder.findOrCreate(on: transaction, week: week, year: year)
+                    else { throw Abort(.notFound, reason: "Week order (\(year) - \(week)) could not be fetched") }
+                    
+                    guard let cobVariant = try await weekOrder.orderPlaced(by: user, on: transaction)
+                    else { throw Abort(.notFound, reason: "No order found for user \(user.name) for week \(weekOrder.description)") }
+                    
+                    return (weekOrder, cobVariant)
+                }
+                    
+                let weekOrderDTO = WeekOrder.DTO(fromWeekOrder: weekOrder)
+
+                switch cobVariant {
+                case .single(let cob):
+                    return try CobOrder.DTO(fromOrder: cob, weekOrder: weekOrderDTO)
+                case .recurring(let recurringOrder):
+                    return try CobOrder.DTO(fromRecurring: recurringOrder, weekOrder: weekOrderDTO)
+                }
             }
             
-            static func post(_ req: Request) async throws -> CobOrder {
-                let userId = try req.auth.require(User.self).requireID()
-                
-                guard let weekOrder = await WeekOrder.current(on: req.db, logger: req.logger) else { throw Abort(.notFound, reason: "Current week order could not be fetched") }
+            static func post(_ req: Request) async throws -> HTTPStatus {
+                let user = try req.auth.require(User.self)
+                let userId = try user.requireID()
                 
                 let orderDetail = try req.content.decode(CobOrderDetail.self)
                 
-                let cobOrder = CobOrder(userId: userId, orderDetail: orderDetail, weekOrderId: try weekOrder.requireID())
-                try await cobOrder.save(on: req.db)
-                
-                return cobOrder
+                return try await req.db.transaction { transaction in
+                    guard let weekOrderId = try await WeekOrder
+                        .findOrCreate(on: transaction)?
+                        .requireID()
+                    else { throw Abort(.notFound, reason: "Current week order could not be fetched") }
+                    
+                    if let existingCobOrder = try await CobOrder.query(on: transaction)
+                        .filter(\.$user.$id == userId)
+                        .filter(\.$weekOrder.$id == weekOrderId)
+                        .first()
+                    {
+                        existingCobOrder.orderDetail = orderDetail
+                        try await existingCobOrder.update(on: transaction)
+                        return .ok
+                    }
+                    else {
+                        let cobOrder = CobOrder(userId: userId, orderDetail: orderDetail, weekOrderId: weekOrderId)
+                        try await cobOrder.save(on: transaction)
+                        return .created
+                    }
+                }
             }
             
             static func delete(_ req: Request) async throws -> HTTPStatus {
-                let userId = try req.auth.require(User.self).requireID()
+                let fallbackDateComponents = WeekOrder.dateComponents(Date())
+                let year: Int = req.query["year"] ??  fallbackDateComponents.year
+                let week: Int = req.query["week"] ?? fallbackDateComponents.week
                 
-                guard let weekOrderId = try await WeekOrder.current(on: req.db, logger: req.logger)?.requireID() else { throw Abort(.notFound, reason: "Current week order could not be fetched") }
+                let user = try req.auth.require(User.self)
                 
-                guard let cobOrder = try await CobOrder.query(on: req.db).filter(\.$weekOrder.$id == weekOrderId).filter(\.$user.$id == userId).first() else { throw Abort(.notFound, reason: "No order found for user \(userId)") }
-                
-                try await cobOrder.delete(on: req.db)
-                
-                return .ok
+                return try await req.db.transaction { transaction in
+                    guard let weekOrder = try await WeekOrder.findOrCreate(on: transaction, week: week, year: year)
+                    else { throw Abort(.notFound, reason: "Current week order could not be fetched") }
+                    
+                    guard let cobOrder = try await weekOrder.orderPlaced(by: user, on: transaction)
+                    else { throw Abort(.notFound, reason: "No order found for user \(user.name)") }
+                    
+                    switch cobOrder {
+                    case .single(let cobOrder):
+                        req.logger.info("Single order (id: \(String(describing: try? cobOrder.requireID().uuidString))) deleted")
+                        try await cobOrder.delete(on: transaction)
+                    case .recurring(let recurringOrder):
+                        req.logger.info("Recurring order (id: \(String(describing: try? recurringOrder.requireID().uuidString))) exception added")
+                        try await RecurringOrderException(user: user, weekOrder: weekOrder).create(on: transaction)
+                    }
+    
+                    return .ok
+                }
             }
             
-            static func history(_ req: Request) async throws -> [CobOrder] {
-                let userId = try req.auth.require(User.self).requireID()
+            static func history(_ req: Request) async throws -> [CobOrder.DTO] {
+                let user = try req.auth.require(User.self)
+                let userId = try user.requireID()
                 
                 let pageIndex: Int = req.query["page"] ?? 0
                 
-                return try await CobOrder.query(on: req.db).filter(\.$user.$id == userId).sort( \.$createdAt, .descending).page(withIndex: pageIndex, size: 10).items
+                let orders = try await CobOrder.query(on: req.db)
+                    .filter(\.$user.$id == userId)
+                    .join(WeekOrder.self, on: \WeekOrder.$id == \CobOrder.$weekOrder.$id)
+                    .sort( \.$createdAt, .descending)
+                    .page(withIndex: pageIndex, size: 10)
+                    .items
+                
+                var orderDTOs: [CobOrder.DTO] = []
+                try orders.forEach { order in
+                    let weekOrderDTO = WeekOrder.DTO(fromWeekOrder: try order.joined(WeekOrder.self))
+                    orderDTOs.append(try CobOrder.DTO(fromOrder: order, weekOrder: weekOrderDTO))
+                }
+                
+                return orderDTOs
+            }
+            
+            struct Recurring {
+                static func get(_ req: Request) async throws -> RecurringOrder.DTO {
+                    let user = try req.auth.require(User.self)
+                    let userId = try user.requireID()
+                    
+                    guard let recurringOrder = try await RecurringOrder.query(on: req.db)
+                        .filter(\.$user.$id == userId)
+                        .first()
+                    else { throw Abort(.notFound, reason: "No recurring order found for user \(user.name)") }
+                    
+                    return try await RecurringOrder.DTO(fromRecurringOrder: recurringOrder, on: req.db)
+                }
+                
+                static func post(_ req: Request) async throws -> HTTPStatus {
+                    let user = try req.auth.require(User.self)
+                    let userId = try user.requireID()
+
+                    let orderDetail = try req.content.decode(CobOrderDetail.self)
+                    
+                    return try await req.db.transaction { transaction in
+                        if let existingRecurringOrder = try await RecurringOrder.query(on: transaction)
+                            .filter(\.$user.$id == userId)
+                            .first()
+                        {
+                                existingRecurringOrder.orderDetail = orderDetail
+                                try await existingRecurringOrder.update(on: transaction)
+                                return .ok
+                        } else {
+                            let newRecurringOrder = RecurringOrder(userId: userId, orderDetail: orderDetail)
+                            try await newRecurringOrder.save(on: transaction)
+                            return .created
+                        }
+                    }
+                }
+                
+                static func delete(_ req: Request) async throws -> HTTPStatus {
+                    let user = try req.auth.require(User.self)
+                    let userId = try user.requireID()
+                    
+                    try await req.db.transaction { transaction in
+                        if let existingRecurringOrder = try await RecurringOrder.query(on: transaction).filter(\.$user.$id == userId).first() {
+                            try await existingRecurringOrder.delete(on: transaction)
+                        }
+                    }
+                    
+                    return .ok
+                }
+                
+                static func reset(_ req: Request) async throws -> HTTPStatus {
+                    let year: Int? = req.query["year"]
+                    let week: Int? = req.query["week"]
+                    
+                    let user = try req.auth.require(User.self)
+                    let userId = try user.requireID()
+                    
+                    let recurringOrderExceptions = RecurringOrderException.query(on: req.db)
+                        .join(WeekOrder.self, on: \RecurringOrderException.$weekOrder.$id == \WeekOrder.$id)
+                        .filter(\.$user.$id == userId)
+                    
+                    if let year {
+                        recurringOrderExceptions.filter(WeekOrder.self, \.$year == year)
+                    }
+                    
+                    if let week {
+                        recurringOrderExceptions.filter(WeekOrder.self, \.$week == week)
+                    }
+                    
+                    try await recurringOrderExceptions.delete()
+                    
+                    return .ok
+                }
             }
         }
     }
