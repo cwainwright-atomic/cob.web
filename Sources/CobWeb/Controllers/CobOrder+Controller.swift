@@ -9,8 +9,6 @@ import Foundation
 import Vapor
 import Fluent
 
-extension CobOrder: Content {}
-
 extension CobOrder {
     struct Controller : RouteCollection {
         func boot(routes: any Vapor.RoutesBuilder) throws {
