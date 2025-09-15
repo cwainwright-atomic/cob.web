@@ -8,10 +8,10 @@
 import Foundation
 import Fluent
 
-final class RecurringOrder: Model, @unchecked Sendable {
-    static let schema = "recurring_orders"
+public final class RecurringOrder: Model, @unchecked Sendable {
+    public static let schema = "recurring_orders"
     
-    init() {}
+    public init() {}
     
     init(userId: UUID, orderDetail: CobOrderDetail) {
         self.$user.id = userId
@@ -19,7 +19,7 @@ final class RecurringOrder: Model, @unchecked Sendable {
     }
     
     @ID(key: .id)
-    var id: UUID?
+    public var id: UUID?
     
     @Timestamp(key: "created_at", on: .create)
     var createdAt: Date?

@@ -9,10 +9,10 @@ import Foundation
 import Fluent
 import Vapor
 
-final class User : Model, @unchecked Sendable, Content {
-    static let schema = "users"
+public final class User : Model, @unchecked Sendable {
+    public static let schema = "users"
     
-    init() { }
+    public init() { }
     
     init(id: UUID? = nil, name: String, email: String, passwordHash: String) {
         self.id = id
@@ -22,7 +22,7 @@ final class User : Model, @unchecked Sendable, Content {
     }
     
     @ID(key: .id)
-    var id: UUID?
+    public var id: UUID?
     
     @Field(key: "name")
     var name: String
@@ -79,19 +79,6 @@ extension User {
         try self.init(name: create.name, email: create.email, passwordHash: Bcrypt.hash(create.password))
     }
 }
-
-extension User {
-    struct Response: Content {
-        var name: String
-        var email: String
-        
-        init(fromUser user: User) {
-            name = user.name
-            email = user.email.lowercased()
-        }
-    }
-}
-
 
 extension User {
     func generateToken() throws -> UserToken {

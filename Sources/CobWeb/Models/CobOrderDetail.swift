@@ -7,8 +7,12 @@
 
 import Foundation
 import Fluent
+import Crumbs
 
-final class CobOrderDetail: Fields, @unchecked Sendable {
+public final class CobOrderDetail: Fields, @unchecked Sendable {
+    
+    public init() {}
+    
     @Enum(key: "filling")
     var filling: Filling
     

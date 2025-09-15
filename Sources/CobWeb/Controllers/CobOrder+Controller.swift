@@ -8,6 +8,7 @@
 import Foundation
 import Vapor
 import Fluent
+import Crumbs
 
 extension CobOrder {
     struct Controller : RouteCollection {
@@ -37,7 +38,7 @@ extension CobOrder {
         }
         
         struct Week {
-            static func get(_ req: Request) async throws -> WeekOrder.OrderDTO {
+            static func get(_ req: Request) async throws -> WeekOrderDTO {
                 let fallbackDateComponents = WeekOrder.dateComponents(Date())
                 let year: Int = req.query["year"] ??  fallbackDateComponents.year
                 let week: Int = req.query["week"] ?? fallbackDateComponents.week
@@ -55,12 +56,12 @@ extension CobOrder {
                     .join(parent: \CobOrder.$user).filter(\.$weekOrder.$id == weekOrderId)
                     .all()
                 
-                var orders: [UUID : CobOrder.DTO] = [:]
+                var orders: [UUID : CobOrderDTO] = [:]
                 
                 try recurringCobOrders.forEach {
                     let user = try $0.joined(User.self)
-                    let userDTO = User.DTO(fromUser: user)
-                    let cobOrderDTO = try CobOrder.DTO(fromRecurring: $0, user: userDTO)
+                    let userDTO = UserDTO(fromUser: user)
+                    let cobOrderDTO = try CobOrderDTO(fromRecurring: $0, user: userDTO)
                     orders[try user.requireID()] = cobOrderDTO
                 }
                 
@@ -70,17 +71,17 @@ extension CobOrder {
                 
                 try weekCobOrders.forEach {
                     let user = try $0.joined(User.self)
-                    let userDTO = User.DTO(fromUser: user)
-                    let cobOrderDTO = try CobOrder.DTO(fromOrder: $0, user: userDTO)
+                    let userDTO = UserDTO(fromUser: user)
+                    let cobOrderDTO = try CobOrderDTO(fromOrder: $0, user: userDTO)
                     orders[try user.requireID()] = cobOrderDTO
                 }
                 
-                return WeekOrder.OrderDTO(week: week, year: year, orders: Array(orders.values))
+                return WeekOrderDTO(week: week, year: year, orders: Array(orders.values))
             }
         }
         
         struct Personal {
-            static func get(_ req: Request) async throws -> CobOrder.DTO {
+            static func get(_ req: Request) async throws -> CobOrderDTO {
                 let fallbackDateComponents = WeekOrder.dateComponents(Date())
                 let year: Int = req.query["year"] ??  fallbackDateComponents.year
                 let week: Int = req.query["week"] ?? fallbackDateComponents.week
@@ -97,13 +98,13 @@ extension CobOrder {
                     return (weekOrder, cobVariant)
                 }
                     
-                let weekOrderDTO = WeekOrder.DTO(fromWeekOrder: weekOrder)
+                let weekOrderDTO = WeekOrderDTO(fromWeekOrder: weekOrder)
 
                 switch cobVariant {
                 case .single(let cob):
-                    return try CobOrder.DTO(fromOrder: cob, weekOrder: weekOrderDTO)
+                    return try CobOrderDTO(fromOrder: cob, weekOrder: weekOrderDTO)
                 case .recurring(let recurringOrder):
-                    return try CobOrder.DTO(fromRecurring: recurringOrder, weekOrder: weekOrderDTO)
+                    return try CobOrderDTO(fromRecurring: recurringOrder, weekOrder: weekOrderDTO)
                 }
             }
             
@@ -163,7 +164,7 @@ extension CobOrder {
                 }
             }
             
-            static func history(_ req: Request) async throws -> [CobOrder.DTO] {
+            static func history(_ req: Request) async throws -> [CobOrderDTO] {
                 let user = try req.auth.require(User.self)
                 let userId = try user.requireID()
                 
@@ -176,17 +177,17 @@ extension CobOrder {
                     .page(withIndex: pageIndex, size: 10)
                     .items
                 
-                var orderDTOs: [CobOrder.DTO] = []
+                var orderDTOs: [CobOrderDTO] = []
                 try orders.forEach { order in
-                    let weekOrderDTO = WeekOrder.DTO(fromWeekOrder: try order.joined(WeekOrder.self))
-                    orderDTOs.append(try CobOrder.DTO(fromOrder: order, weekOrder: weekOrderDTO))
+                    let weekOrderDTO = WeekOrderDTO(fromWeekOrder: try order.joined(WeekOrder.self))
+                    orderDTOs.append(try CobOrderDTO(fromOrder: order, weekOrder: weekOrderDTO))
                 }
                 
                 return orderDTOs
             }
             
             struct Recurring {
-                static func get(_ req: Request) async throws -> RecurringOrder.DTO {
+                static func get(_ req: Request) async throws -> RecurringOrderDTO {
                     let user = try req.auth.require(User.self)
                     let userId = try user.requireID()
                     
@@ -195,7 +196,7 @@ extension CobOrder {
                         .first()
                     else { throw Abort(.notFound, reason: "No recurring order found for user \(user.name)") }
                     
-                    return try await RecurringOrder.DTO(fromRecurringOrder: recurringOrder, on: req.db)
+                    return try await RecurringOrderDTO(fromRecurringOrder: recurringOrder)
                 }
                 
                 static func post(_ req: Request) async throws -> HTTPStatus {

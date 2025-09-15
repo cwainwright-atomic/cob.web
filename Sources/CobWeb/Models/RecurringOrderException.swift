@@ -8,10 +8,10 @@
 import Foundation
 import Fluent
 
-final class RecurringOrderException: Model, @unchecked Sendable {
-    static let schema: String = "recurring_order_exceptions"
+public final class RecurringOrderException: Model, @unchecked Sendable {
+    public static let schema: String = "recurring_order_exceptions"
     
-    init() {}
+    public init() {}
     
     init(user: User, weekOrder: WeekOrder) throws {
         let userId = try user.requireID()
@@ -22,7 +22,7 @@ final class RecurringOrderException: Model, @unchecked Sendable {
     }
     
     @ID(key: .id)
-    var id: UUID?
+    public var id: UUID?
     
     @Timestamp(key: "created_at", on: .create)
     var createdAt: Date?

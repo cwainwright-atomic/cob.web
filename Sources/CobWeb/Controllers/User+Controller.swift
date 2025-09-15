@@ -8,6 +8,7 @@
 import Foundation
 import Vapor
 import Fluent
+import Crumbs
 
 extension User {
     struct Controller : RouteCollection {
@@ -17,15 +18,15 @@ extension User {
             users.post("signup", use: Self.postUser)
             
             let passwordProtected = users.grouped(User.Authenticator()).grouped(User.guardMiddleware())
-            passwordProtected.post("login") { req async throws -> UserToken in
+            passwordProtected.post("login") { req async throws -> UserTokenDTO in
                 let user = try req.auth.require(User.self)
                 let token = try user.generateToken()
                 try await token.save(on: req.db)
-                return token
+                return UserTokenDTO(fromUser: user, userToken: token)
             }
         }
         
-        static func getUser(req: Request) async throws -> User.Response {
+        static func getUser(req: Request) async throws -> UserDTO {
             let userQuery: () async throws -> User?
             
             if let name: String = req.query["name"] {
@@ -40,10 +41,10 @@ extension User {
             
             guard let user = try await userQuery() else { throw Abort(.notFound, reason: "User not found") }
             
-            return User.Response(fromUser: user)
+            return UserDTO(fromUser: user)
         }
         
-        private static func postUser(req: Request) async throws -> User.Response {
+        private static func postUser(req: Request) async throws -> UserDTO {
             let create: User.Create
             
             do {
@@ -60,7 +61,7 @@ extension User {
             
             try await user.save(on: req.db)
             
-            return User.Response(fromUser: user)
+            return UserDTO(fromUser: user)
         }
         
         private static func deleteUser(req: Request) async throws -> HTTPStatus {

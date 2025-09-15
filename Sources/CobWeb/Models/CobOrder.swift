@@ -8,10 +8,10 @@
 import Foundation
 import Fluent
 
-final class CobOrder : Model, @unchecked Sendable {
-    static let schema = "cob_orders"
+public final class CobOrder : Model, @unchecked Sendable {
+    public static let schema = "cob_orders"
     
-    init() {}
+    public init() {}
     
     init(id: UUID? = nil, createdAt: Date? = nil, userId: UUID, orderDetail: CobOrderDetail, weekOrderId: UUID) {
         self.id = id
@@ -22,7 +22,7 @@ final class CobOrder : Model, @unchecked Sendable {
     }
     
     @ID(key: .id)
-    var id: UUID?
+    public var id: UUID?
     
     @Timestamp(key: "created_at", on: .create)
     var createdAt: Date?

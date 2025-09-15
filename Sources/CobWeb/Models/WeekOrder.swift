@@ -8,11 +8,11 @@
 import Foundation
 import Fluent
 
-final class WeekOrder : Model, @unchecked Sendable {
+public final class WeekOrder : Model, @unchecked Sendable {
     
-    static let schema = "week_orders"
+    public static let schema = "week_orders"
     
-    init() {}
+    public init() {}
     
     init(week: Int, year: Int) {
         self.week = week
@@ -26,7 +26,7 @@ final class WeekOrder : Model, @unchecked Sendable {
     }
     
     @ID(key: .id)
-    var id: UUID?
+    public var id: UUID?
     
     @Field(key: "week")
     var week: Int
@@ -42,7 +42,7 @@ final class WeekOrder : Model, @unchecked Sendable {
 }
 
 extension WeekOrder : CustomStringConvertible {
-    var description: String {
+    public var description: String {
         "\(year) - \(week)"
     }
 }
@@ -102,3 +102,4 @@ extension WeekOrder {
         }
     }
 }
+
