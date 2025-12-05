@@ -15,7 +15,13 @@ extension RecurringOrderDTO: @retroactive AsyncResponseEncodable {}
 extension RecurringOrderDTO : @retroactive Content {}
 
 extension RecurringOrderDTO {
-    init(fromRecurringOrder recurringOrder: RecurringOrder) async throws {
-        self.init(orderDetail: CobOrderDetailDTO(fromDetail: recurringOrder.orderDetail))
+    init(from recurringOrder: RecurringOrder) throws {
+        let id = try recurringOrder.requireID()
+        let startDate = recurringOrder.startAt
+        let orderDetail = CobOrderDetailDTO(fromDetail: recurringOrder.orderDetail)
+        self.init(id: id, startDate: startDate, orderDetail: orderDetail)
     }
 }
+
+extension RecurringOrderDTO.AssociatedName: @retroactive Content {}
+

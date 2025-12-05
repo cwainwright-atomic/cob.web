@@ -13,10 +13,11 @@ extension RecurringOrderException {
         func prepare(on database: any Database) async throws {
             try await database.schema(RecurringOrderException.schema)
                 .id()
+                .field("week", .date, .required)
                 .field("user_id", .uuid, .required, .references("users", "id"))
-                .field("week_order_id", .uuid, .required, .references("week_orders", "id"))
-                .field("created_at", .datetime, .required)
-                .unique(on: "user_id", "week_order_id")
+                .field("created_at", .datetime)
+                .field("updated_at", .datetime)
+                .unique(on: "user_id")
                 .create()
         }
         

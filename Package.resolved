@@ -1,5 +1,5 @@
 {
-  "originHash" : "d3e73e2b2c10916c6d9087157ad5425dcf5a61ebb7b4065fe2b6a7989139deab",
+  "originHash" : "dec60308e47f25b61fe566ddeb693a6125d66eff40cbdef7fa242e6520a58d94",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/cwainwright-atomic/crumbs.git",
       "state" : {
-        "revision" : "265669b12859465fd99a0d686a7972e527ad1bc9",
-        "version" : "1.0.8"
+        "revision" : "1231762b3a8315ab803cfea3e0340aaf8a34adc4",
+        "version" : "2.2.0"
       }
     },
     {

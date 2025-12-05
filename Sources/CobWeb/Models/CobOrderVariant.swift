@@ -8,5 +8,5 @@
 import Foundation
 
 enum CobOrderVariant {
-    case single(CobOrder), recurring(RecurringOrder)
+    case single(CobOrder), recurring(RecurringOrder), exception(RecurringOrderException)
 }

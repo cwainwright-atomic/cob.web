@@ -13,44 +13,31 @@ public final class CobOrder : Model, @unchecked Sendable {
     
     public init() {}
     
-    init(id: UUID? = nil, createdAt: Date? = nil, userId: UUID, orderDetail: CobOrderDetail, weekOrderId: UUID) {
+    init(id: UUID? = nil, week: Date, createdAt: Date? = nil, updatedAt: Date? = nil, orderDetail: CobOrderDetail, userId: UUID) {
         self.id = id
+        self.week = week
         self.createdAt = createdAt
+        self.updatedAt = updatedAt
         self.orderDetail = orderDetail
         self.$user.id = userId
-        self.$weekOrder.id = weekOrderId
     }
     
     @ID(key: .id)
     public var id: UUID?
     
+    @Field(key: "week")
+    var week: Date
+    
     @Timestamp(key: "created_at", on: .create)
     var createdAt: Date?
     
+    @Timestamp(key: "updated_at", on: .update)
+    var updatedAt: Date?
+    
     @Group(key: "order_detail")
     var orderDetail: CobOrderDetail
-
+    
     @Parent(key: "user_id")
     var user: User
     
-    @Parent(key: "week_order_id")
-    var weekOrder: WeekOrder
-}
-
-extension CobOrder {
-    static func find(userId: UUID, weekId: UUID, includeUser: Bool = false, includeWeek: Bool = false,  on db: any Database) async throws -> CobOrder? {
-        let query = CobOrder.query(on: db)
-            .filter(\.$weekOrder.$id == weekId)
-            .filter(\.$user.$id == userId)
-        
-        if includeUser {
-            query.join(User.self, on: \User.$id == \CobOrder.$user.$id)
-        }
-        
-        if includeWeek {
-            query.join(WeekOrder.self, on: \WeekOrder.$id == \CobOrder.$weekOrder.$id)
-        }
-        
-        return try await query.first()
-    }
 }
