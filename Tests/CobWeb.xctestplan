@@ -1,0 +1,34 @@
+{
+  "configurations" : [
+    {
+      "id" : "4D4AB922-EBA1-4D4B-9937-02A6929CEED5",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "commandLineArgumentEntries" : [
+      {
+        "argument" : "serve --hostname 192.168.1.93 --port 8080"
+      }
+    ],
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:",
+      "identifier" : "CobWeb",
+      "name" : "CobWeb"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "Tests",
+        "name" : "Tests"
+      }
+    }
+  ],
+  "version" : 1
+}
