@@ -9,17 +9,29 @@ import Vapor
 import Crumbs
 
 extension CobOrderDTO {
-    init(fromOrder order: CobOrder, user: UserDTO? = nil, weekOrder: WeekOrderDTO? = nil) throws {
-        self.init(id: try order.requireID(), createdAt: order.createdAt ?? Date(), orderDetail: CobOrderDetailDTO(fromDetail: order.orderDetail), orderKind: .single, user: user, weekOrder: weekOrder)
+    init(fromOrder order: CobOrder) throws {
+        self.init(
+            id: try order.requireID(),
+            createdAt: order.createdAt ?? Date(),
+            updatedAt: order.updatedAt ?? Date(),
+            orderDetail: CobOrderDetailDTO(fromDetail: order.orderDetail),
+            orderKind: .single
+        )
     }
         
-    init(fromRecurring order: RecurringOrder, user: UserDTO? = nil, weekOrder: WeekOrderDTO? = nil) throws {
-        self.init(id: try order.requireID(), createdAt: Date(), orderDetail: CobOrderDetailDTO(fromDetail: order.orderDetail), orderKind: .recurring, user: user, weekOrder: weekOrder)
+    init(fromRecurring order: RecurringOrder) throws {
+        self.init(
+            id: try order.requireID(),
+            createdAt: order.createdAt ?? Date(),
+            updatedAt: order.updatedAt ?? Date(),
+            orderDetail: CobOrderDetailDTO(fromDetail: order.orderDetail),
+            orderKind: .recurring
+        )
     }
 }
 
-extension CobOrderDTO: @retroactive RequestDecodable {}
-extension CobOrderDTO: @retroactive ResponseEncodable {}
-extension CobOrderDTO: @retroactive AsyncRequestDecodable {}
-extension CobOrderDTO: @retroactive AsyncResponseEncodable {}
 extension CobOrderDTO: @retroactive Content {}
+
+extension CobOrderDTO.AssociatedUser: @retroactive Content {}
+
+extension CobOrderDTO.AssociatedWeek: @retroactive Content {}

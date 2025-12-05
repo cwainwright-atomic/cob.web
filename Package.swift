@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "CobWeb",
     platforms: [
-       .macOS(.v13)
+        .macOS(.v13)
     ],
     dependencies: [
         // 💧 A server-side Swift web framework.
@@ -15,7 +15,7 @@ let package = Package(
         .package(url: "https://github.com/vapor/fluent-sqlite-driver.git", from: "4.6.0"),
         // 🔵 Non-blocking, event-driven networking for Swift. Used for custom executors
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.65.0"),
-        .package(url: "https://github.com/cwainwright-atomic/crumbs.git", from: "1.0.0")
+        .package(url: "https://github.com/cwainwright-atomic/crumbs.git", from: "2.0.0")
     ],
     targets: [
         .executableTarget(
@@ -31,15 +31,13 @@ let package = Package(
             swiftSettings: swiftSettings
         ),
         .testTarget(
-            name: "CobWebTests",
+            name: "Tests",
             dependencies: [
                 .target(name: "CobWeb"),
-                .product(name: "VaporTesting", package: "vapor"),
-                .product(name: "Crumbs", package: "crumbs")
-            ],
-            swiftSettings: swiftSettings
+                .product(name: "VaporTesting", package: "vapor")
+            ]
         )
-    ]
+    ],
 )
 
 var swiftSettings: [SwiftSetting] { [

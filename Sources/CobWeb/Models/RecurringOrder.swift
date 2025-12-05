@@ -13,16 +13,23 @@ public final class RecurringOrder: Model, @unchecked Sendable {
     
     public init() {}
     
-    init(userId: UUID, orderDetail: CobOrderDetail) {
+    init(userId: UUID, startAt: Date, orderDetail: CobOrderDetail) {
         self.$user.id = userId
+        self.startAt = startAt
         self.orderDetail = orderDetail
     }
     
     @ID(key: .id)
     public var id: UUID?
     
+    @Field(key: "week")
+    var startAt: Date
+    
     @Timestamp(key: "created_at", on: .create)
     var createdAt: Date?
+    
+    @Timestamp(key: "updated_at", on: .update)
+    var updatedAt: Date?
     
     @Group(key: "order_detail")
     var orderDetail: CobOrderDetail

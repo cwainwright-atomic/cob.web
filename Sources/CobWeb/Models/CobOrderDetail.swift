@@ -13,6 +13,12 @@ public final class CobOrderDetail: Fields, @unchecked Sendable {
     
     public init() {}
     
+    init(from dto: CobOrderDetailDTO) {
+        self.filling = dto.filling
+        self.bread = dto.bread
+        self.sauce = dto.sauce
+    }
+    
     @Enum(key: "filling")
     var filling: Filling
     

@@ -13,12 +13,13 @@ extension CobOrder {
             try await database.schema("cob_orders")
                 .id()
                 .field("user_id", .uuid, .required, .references("users", "id"))
-                .field("week_order_id", .uuid, .required, .references("week_orders", "id"))
+                .field("week", .date, .required)
+                .field("created_at", .datetime)
+                .field("updated_at", .datetime)
                 .field("order_detail_filling", .string, .required)
                 .field("order_detail_bread", .string, .required)
                 .field("order_detail_sauce", .string, .required)
-                .field("created_at", .datetime, .required)
-                .unique(on: "user_id", "week_order_id")
+                .unique(on: "user_id")
                 .create()
         }
         
