@@ -35,7 +35,9 @@ let package = Package(
             dependencies: [
                 .target(name: "CobWeb"),
                 .product(name: "VaporTesting", package: "vapor")
-            ]
+            ],
+            resources: [.copy("CobWeb.xctestplan")],
+            swiftSettings: swiftSettings
         )
     ],
 )
